@@ -1,0 +1,141 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.devzendo</groupId>
+    <artifactId>fpga-toolchain-experiment</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>fpga-toolchain-experiment</name>
+    <description>An experiment to build a viable FPGA toolchain.
+        (Apache License v2) 2020 Matt Gumbley, DevZendo.org</description>
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <scm>
+        <url>https://github.com/devzendo/fpga-toolchain-experiment.git</url>
+        <connection>scm:git:https://github.com/devzendo/fpga-toolchain-experiment.git</connection>
+        <developerConnection>scm:git:git@github.com:devzendo/fpga-toolchain-experiment.git</developerConnection>
+    </scm>
+    <developers>
+        <developer>
+            <id>matt.gumbley</id>
+            <name>Matt Gumbley</name>
+            <email>matt.gumbley@devzendo.org</email>
+        </developer>
+    </developers>
+
+    <!-- knock out for now, since this is not one of my typical scala projects
+    <parent>
+        <groupId>org.devzendo</groupId>
+        <artifactId>group-parent-scala</artifactId>
+        <version>1.0.2</version>
+        <relativePath/>
+    </parent>
+    -->
+
+    <properties>
+        <spinalhdl.version>1.4.0</spinalhdl.version>
+    </properties>
+
+    <build>
+
+        <sourceDirectory>${project.basedir}/src/main/scala</sourceDirectory>
+        <testSourceDirectory>${project.basedir}/src/test/scala</testSourceDirectory>
+
+        <plugins>
+            <!-- Compile the SpinalHDL scala code, with the scalac compiler plugin -->
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>3.3.2</version>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <scalaVersion>${scala.version}</scalaVersion>
+                            <sendJavaToScalac>true</sendJavaToScalac>
+                            <args>
+                                <arg>-deprecation</arg>
+                                <arg>-feature</arg>
+                                <!-- Would like to enable -Xexperimental for SAM types https://herringtondarkholme.github.io/2015/01/24/scala-sam/
+                                     but doing so breaks ScalaTest's use of eq/any argument matchers -->
+                                <arg>-language:implicitConversions</arg>
+                            </args>
+                            <compilerPlugins>
+                                <compilerPlugin>
+                                    <groupId>com.github.spinalhdl</groupId>
+                                    <artifactId>spinalhdl-idsl-plugin_2.12</artifactId>
+                                    <version>${spinalhdl.version}</version>
+                                </compilerPlugin>
+                            </compilerPlugins>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Execute the compiled code to generate VHDL (could generate Verilog too) -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.6.0</version>
+                <executions>
+                    <execution>
+                        <id>generate-vhdl</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <mainClass>org.devzendo.fpga.counter.CounterMain</mainClass>
+                    <!-- This code will write VHD files into target -->
+                </configuration>
+            </plugin>
+
+            <!-- Package up the VHD files in the target directory -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>package-vhdl</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <classesDirectory>${project.build.directory}</classesDirectory>
+                            <includes>
+                                <include>*.vhd</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.github.spinalhdl</groupId>
+            <artifactId>spinalhdl-core_2.12</artifactId>
+            <version>${spinalhdl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.spinalhdl</groupId>
+            <artifactId>spinalhdl-lib_2.12</artifactId>
+            <version>${spinalhdl.version}</version>
+        </dependency>
+    </dependencies>
+</project>
